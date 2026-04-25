@@ -1,0 +1,9 @@
+model,features,val_mae,val_rmse,val_r2,test_mae,test_rmse,test_r2
+random_forest_fe,feature_engineering,11.426,16.306,0.9867,11.827,16.878,0.9849
+gradient_boosting_fe,feature_engineering,13.216,19.137,0.9817,,,
+decision_tree_fe,feature_engineering,14.56,21.118,0.9777,,,
+linear_regression_fe,feature_engineering,23.586,30.423,0.9537,,,
+ridge_fe,feature_engineering,23.61,30.466,0.9536,,,
+linear_regression_baseline,base,23.842,30.65,0.953,,,
+knn_7_fe,feature_engineering,26.41,37.362,0.9302,,,
+dummy_mean,base,118.248,144.825,-0.0493,,,
