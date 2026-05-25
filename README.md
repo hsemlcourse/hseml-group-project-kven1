@@ -13,6 +13,7 @@
 3. [Запуски](#быстрый-старт)
 4. [Данные](#данные)
 5. [Результаты](#результаты)
+6. [Деплой](#деплой)
 7. [Отчёт](#отчёт)
 
 
@@ -46,10 +47,17 @@
 │   ├── preprocessing.py        # Предобработка данных
 │   ├── make_plots.py           # EDA-графики
 │   ├── model_config.py         # Признаки и конфиги экспериментов
+│   ├── inference.py            # Подготовка признаков для прогноза
+│   ├── api.py                  # FastAPI-сервис
+│   ├── streamlit_app.py        # Web-интерфейс
 │   └── train_models.py         # Обучение и оценка моделей
 ├── tests
-│   └── test_pipeline.py        # Тесты пайплайна
+│   ├── test_pipeline.py        # Тесты пайплайна
+│   ├── test_inference.py       # Тест подготовки признаков для inference
+│   └── test_api.py             # Тест API-обёртки
 ├── .github/workflows/ci.yml    # CI с проверками ruff и flake8
+├── Dockerfile
+├── docker-compose.yml
 ├── requirements.txt
 └── README.md
 ```
@@ -114,26 +122,53 @@ https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=55.7558&long
 
 
 ## Результаты
-Таблица экспериментов создаётся в `report/experiments.csv`.
+Основная метрика - MAE на validation. Полная таблица после запуска сохраняется в `report/experiments.csv`.
 
-| Модель | MAE val | RMSE val | R2 val | Примечание |
-|--------|---------|----------|--------|------------|
-| DummyRegressor | 118.248 | 144.825 | -0.0493 | Наивная модель |
-| LinearRegression baseline | 23.842 | 30.650 | 0.9530 | Baseline без feature engineering |
-| LinearRegression FE | 23.586 | 30.423 | 0.9537 | Линейная модель с feature engineering |
-| Ridge FE | 23.610 | 30.466 | 0.9536 | Линейная модель с регуляризацией |
-| KNNRegressor FE | 26.410 | 37.362 | 0.9302 | Метод ближайших соседей |
-| DecisionTreeRegressor FE | 14.560 | 21.118 | 0.9777 | Дерево решений |
-| GradientBoostingRegressor FE | 13.216 | 19.137 | 0.9817 | Бустинг |
-| RandomForestRegressor FE | 11.426 | 16.306 | 0.9867 | Лучшая модель CP1 |
+| Модель | Признаки | MAE val |
+|--------|----------|--------:|
+| DummyRegressor | base | 118.248 |
+| LinearRegression baseline | base | 23.842 |
+| LinearRegression FE | base + FE | 23.586 |
+| Ridge FE | base + FE | 23.610 |
+| KNNRegressor FE | base + FE | 26.410 |
+| DecisionTreeRegressor FE | base + FE | 14.560 |
+| GradientBoostingRegressor FE | base + FE | 13.216 |
+| RandomForestRegressor FE | base + FE | 11.426 |
 
-На test проверяется только лучшая модель:
+Лучшая модель на validation - `RandomForestRegressor FE`. На test: MAE `11.827`, RMSE `16.878`, R2 `0.9849`.
 
-| Модель | MAE test | RMSE test | R2 test |
-|--------|----------|-----------|---------|
-| RandomForestRegressor FE | 11.827 | 16.878 | 0.9849 |
+Графики лежат в `report/images/`.
 
-Графики создаются в `report/images/`.
+
+## Деплой
+
+Перед запуском деплоя должна быть обученная модель `models/best_model.joblib`. Если её нет, сначала запустите пайплайн обучения.
+
+```bash
+docker compose up --build
+```
+
+После запуска:
+- API: `http://localhost:8000`
+- Swagger-документация API: `http://localhost:8000/docs`
+- Web-интерфейс: `http://localhost:8501`
+
+Пример запроса к API:
+
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "date": "2026-04-25",
+    "building_id": 1,
+    "avg_classes_today": 4.0,
+    "avg_classes_morning": 2.0,
+    "avg_classes_evening": 1.0,
+    "forecast_temperature": 12.5,
+    "forecast_precipitation_mm": 1.2,
+    "relative_humidity": 65.0
+  }'
+```
 
 
 ## Отчёт
